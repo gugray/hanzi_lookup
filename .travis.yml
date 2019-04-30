@@ -3,9 +3,6 @@ language: rust
 rust:
     - nightly
 
-script: cd hanzi_lookup & cargo test
-
-matrix:
-  include:
-    - rust: 1.36.0
-script: cd hanzi_lookup & cargo build --target wasm32-unknown-unknown --release
+script:
+    - cd hanzi_lookup & cargo test
+    - cd hanzi_lookup & cargo build --target wasm32-unknown-unknown --release
