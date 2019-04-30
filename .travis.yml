@@ -4,5 +4,6 @@ rust:
     - nightly
 
 script:
-    - cd hanzi_lookup & cargo test
-    - cd hanzi_lookup & cargo build --target wasm32-unknown-unknown --release
+    - cd hanzi_lookup
+    - cargo build --target wasm32-unknown-unknown --release
+    - cargo test
