@@ -10,6 +10,8 @@ matrix:
       name: "check wasm32 support"
       install: rustup target add wasm32-unknown-unknown
 
+cache: cargo
+
 script:
     - cd hanzi_lookup
     - cargo build --target wasm32-unknown-unknown --release
