@@ -9,7 +9,6 @@ matrix:
       rust: nightly
       name: "check wasm32 support"
       install: rustup target add wasm32-unknown-unknown
-      script: cargo check --target wasm32-unknown-unknown
 
 script:
     - cd hanzi_lookup
