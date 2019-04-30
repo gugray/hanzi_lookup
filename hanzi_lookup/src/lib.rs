@@ -19,7 +19,6 @@ struct CharData {
   substrokes: Vec<SubStrokeTriple>,
 }
 
-
 thread_local!(static CHAR_DATA: Vec<CharData> = load_strokes());
 
 fn load_strokes() -> Vec<CharData> {
@@ -29,12 +28,28 @@ fn load_strokes() -> Vec<CharData> {
     res
 }
 
+#[derive(Serialize, Deserialize)]
+struct Action {
+    action: String,
+    points: Vec<Vec<u8>>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Input {
+    char: String,
+    ix: i64,
+    duration: i64,
+    actions: Vec<Action>,
+}
+
 
 #[wasm_bindgen]
-pub fn barf(_arg: &str, _width: u32, _height: u32) -> i32 {
-    let mut res: i32 = 0;
+pub fn barf(input: &JsValue) -> String {
+    let input: Input = input.into_serde().unwrap();
+    let mut char_data_len: usize = 0;
     CHAR_DATA.with(|char_data| { 
-        res = char_data.len() as i32;
+        char_data_len = char_data.len();
     });
+    let res = format!("Got {} actions in input.\nThere are {} characters in recognition data.", input.actions.len(), char_data_len);
     res
 }
