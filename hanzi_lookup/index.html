@@ -1,0 +1,17 @@
+<html>
+  <head>
+    <title>HanziLookup WASM</title>
+    <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <script src="dist/rwasm.js"></script>
+    <script>
+      window.addEventListener(`load`, function(event) {
+        wasm_bindgen(`dist/rwasm_bg.wasm`)
+          .then(() => {
+            const res = wasm_bindgen.barf("Lazy queen bee", 42, 256);
+            alert(res);
+          });
+      });
+    </script>
+  </head>
+  <body></body>
+</html>
