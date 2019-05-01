@@ -53,3 +53,26 @@ pub fn barf(input: &JsValue) -> String {
     let res = format!("Got {} actions in input.\nThere are {} characters in recognition data.", input.actions.len(), char_data_len);
     res
 }
+
+pub struct Point {
+  pub x: u8,
+  pub y: u8,
+}
+
+pub struct Stroke {
+  pub points: Vec<Point>,
+}
+
+pub struct Match {
+  pub hanzi: char,
+  pub score: f32,
+}
+
+pub fn match_typed(strokes: &Vec<Stroke>) -> Vec<Match> {
+  let mut res: Vec<Match> = Vec::new();
+  res.push(Match {
+    hanzi: '你',
+    score: 0.99,
+  });
+  res
+}

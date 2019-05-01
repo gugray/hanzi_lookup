@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug-cli-demo",
+      "cargo": {
+        "args": [ "build" ]
+      },
+      "program": "${workspaceRoot}/.target/debug/cli_demo",
+      "args": [],
+      "stdio": {
+        "stdin": "cli_demo/debug/stdin.txt",
+        "stdout": "cli_demo/debug/stdout.txt",
+        "stderr": "cli_demo/debug/stderr.txt"
+      },
+      "cwd": "${workspaceRoot}/cli_demo",
+      "sourceLanguages": [
+        "rust"
+      ]
+    }
+  ]
+}

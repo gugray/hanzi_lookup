@@ -1,0 +1,2 @@
+[workspace]
+members = ["cli_demo", "hanzi_lookup"]

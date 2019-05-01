@@ -1,4 +1,7 @@
 target/
+.target/
 dist/
+**/debug/stderr.txt
+**/debug/stdout.txt
 Cargo.lock
 **/*.rs.bk
