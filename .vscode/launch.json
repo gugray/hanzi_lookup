@@ -19,6 +19,21 @@
       "sourceLanguages": [
         "rust"
       ]
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug-lib-tests",
+      "cargo": {
+        "args": [ "test", "--no-run" ],
+        "filter": { "kind": "lib" }
+      },
+      "program": "${workspaceRoot}/.target/debug/hanzi_lookup-16a96226926f98a4.exe",
+      "args": [],
+      "cwd": "${workspaceRoot}/hanzi_lookup",
+      "sourceLanguages": [
+        "rust"
+      ]
     }
   ]
 }

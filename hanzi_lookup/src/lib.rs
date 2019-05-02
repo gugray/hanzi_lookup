@@ -5,6 +5,9 @@ extern crate bincode;
 use wasm_bindgen::prelude::*;
 use serde_derive::{Serialize, Deserialize};
 
+mod match_collector;
+use match_collector::*;
+
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 struct SubStrokeTriple {
   dir: u8,
@@ -63,16 +66,19 @@ pub struct Stroke {
   pub points: Vec<Point>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Match {
   pub hanzi: char,
   pub score: f32,
 }
 
-pub fn match_typed(strokes: &Vec<Stroke>) -> Vec<Match> {
-  let mut res: Vec<Match> = Vec::new();
-  res.push(Match {
-    hanzi: '你',
+pub fn match_typed(strokes: &Vec<Stroke>, max: u32) -> Vec<Match> {
+  let mut res: Vec<Match> = Vec::with_capacity(max as usize);
+  let mut collector = MatchCollector::new(&mut res, max);
+  let mc = Match {
+    hanzi: '雞',
     score: 0.99,
-  });
+  };
+  collector.file_match(mc);
   res
 }

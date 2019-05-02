@@ -64,7 +64,7 @@ fn main() {
     for _ in 0..ITERS {
         for input in &inputs {
             let strokes = get_strokes(&input.actions);
-            let matches = hanzi_lookup::match_typed(&strokes);
+            let matches = hanzi_lookup::match_typed(&strokes, 16);
             if matches.len() > 0 && matches[0].hanzi == input.char.chars().next().unwrap() {
                 guessed += 1;
             }
