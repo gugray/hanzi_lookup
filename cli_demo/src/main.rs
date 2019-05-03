@@ -2,10 +2,10 @@ extern crate serde_derive;
 extern crate hanzi_lookup;
 
 use serde_derive::{Serialize, Deserialize};
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 use std::fs::File;
-use std::io::{BufRead, BufReader, Result};
-use hanzi_lookup::{Stroke,Point};
+use std::io::{BufRead, BufReader};
+use hanzi_lookup::{Stroke, Point};
 
 const ITERS: usize = 10_000;
 

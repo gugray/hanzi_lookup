@@ -1,10 +1,12 @@
+use super::Match;
+
 pub struct MatchCollector<'a> {
     max: u32,
-    matches: &'a mut Vec<super::Match>,
+    matches: &'a mut Vec<Match>,
 }
 
 impl<'a> MatchCollector<'a> {
-    pub fn new(matches: &mut Vec<super::Match>, max: u32) -> MatchCollector {
+    pub fn new(matches: &mut Vec<Match>, max: u32) -> MatchCollector {
         assert!(max > 0, "Expected a positive number for the maximum number of matches.");
         assert!(matches.len() == 0, "The pre-existing matches vector must be empty.");
         MatchCollector {
@@ -13,7 +15,7 @@ impl<'a> MatchCollector<'a> {
         }
     }
 
-    fn remove_existing_lower(&mut self, mc: &super::Match) -> bool {
+    fn remove_existing_lower(&mut self, mc: &Match) -> bool {
         let mut ix: i32 = -1;
         for i in 0..self.matches.len() {
             if self.matches[i].hanzi == mc.hanzi {
@@ -34,7 +36,7 @@ impl<'a> MatchCollector<'a> {
         return false;
     }
 
-    pub fn file_match(&mut self, mc: super::Match) {
+    pub fn file_match(&mut self, mc: Match) {
         // Already at limit: don't bother if new match's score is smaller than current minimum
         if self.matches.len() == self.max as usize && mc.score <= self.matches.last().unwrap().score {
             return;
@@ -62,7 +64,7 @@ impl<'a> MatchCollector<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::super::*;
+    use super::super::Match;
 
     #[test]
     #[should_panic]

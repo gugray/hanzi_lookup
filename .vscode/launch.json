@@ -26,9 +26,9 @@
       "name": "Debug-lib-tests",
       "cargo": {
         "args": [ "test", "--no-run" ],
-        "filter": { "kind": "lib" }
+        "filter": { "kind": "bin" }
       },
-      "program": "${workspaceRoot}/.target/debug/hanzi_lookup-16a96226926f98a4.exe",
+      "program": "${workspaceRoot}/.target/debug/hanzi_lookup-012bdc0c20f3fa85.exe",
       "args": [],
       "cwd": "${workspaceRoot}/hanzi_lookup",
       "sourceLanguages": [
