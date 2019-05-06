@@ -6,10 +6,12 @@ extern crate serde_derive;
 extern crate bincode;
 
 mod match_collector;
+mod cubic_curve_2d;
 mod entities;
 mod analyzed_character;
 mod matcher;
 
+use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
 use serde_derive::{Serialize, Deserialize};
 
@@ -62,19 +64,19 @@ pub struct Match {
     pub score: f32,
 }
 
-thread_local!(static MATCHER: Matcher = Matcher::new());
+thread_local!(static MATCHER: RefCell<Matcher> = RefCell::new(Matcher::new()));
 
-pub fn match_typed(strokes: &Vec<Stroke>, max: u32) -> Vec<Match> {
-    let mut res: Vec<Match> = Vec::with_capacity(max as usize);
-    let mut collector = MatchCollector::new(&mut res, max);
+pub fn match_typed(strokes: &Vec<Stroke>, limit: usize) -> Vec<Match> {
+    let mut res: Vec<Match> = Vec::with_capacity(limit);
+    let mut collector = MatchCollector::new(&mut res, limit);
     MATCHER.with(|matcher| {
-        matcher.recognize(strokes, &collector);
+        matcher.borrow_mut().lookup(strokes, &mut collector);
     });
-    
-    let mc = Match {
-        hanzi: '雞',
-        score: 0.99,
-    };
-    collector.file_match(mc);
+    // DBG    
+    // let mc = Match {
+    //     hanzi: '雞',
+    //     score: 0.99,
+    // };
+    // collector.file_match(mc);
     res
 }

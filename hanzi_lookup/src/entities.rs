@@ -9,6 +9,7 @@ pub struct AnalyzedStroke<'a> {
 }
 
 // A single analyzed substroke
+#[derive(Debug, Clone, Copy)]
 pub struct SubStroke {
     // The substroke's direction; normalized into 0..256 from 0..2*PI
     pub direction: f32,

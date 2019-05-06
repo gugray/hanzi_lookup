@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use hanzi_lookup::{Stroke, Point};
 
-const ITERS: usize = 10_000;
+const ITERS: usize = 10;
 
 #[derive(Serialize, Deserialize)]
 struct Action {
@@ -65,6 +65,7 @@ fn main() {
         for input in &inputs {
             let strokes = get_strokes(&input.actions);
             let matches = hanzi_lookup::match_typed(&strokes, 16);
+            println!("Barf: {}", matches[0].hanzi);
             if matches.len() > 0 && matches[0].hanzi == input.char.chars().next().unwrap() {
                 guessed += 1;
             }

@@ -1,16 +1,16 @@
 use super::Match;
 
 pub struct MatchCollector<'a> {
-    max: u32,
+    limit: usize,
     matches: &'a mut Vec<Match>,
 }
 
 impl<'a> MatchCollector<'a> {
-    pub fn new(matches: &mut Vec<Match>, max: u32) -> MatchCollector {
-        assert!(max > 0, "Expected a positive number for the maximum number of matches.");
+    pub fn new(matches: &mut Vec<Match>, limit: usize) -> MatchCollector {
+        assert!(limit > 0, "Expected a positive number for the maximum number of matches.");
         assert!(matches.len() == 0, "The pre-existing matches vector must be empty.");
         MatchCollector {
-            max: max,
+            limit: limit,
             matches: matches,
         }
     }
@@ -38,7 +38,7 @@ impl<'a> MatchCollector<'a> {
 
     pub fn file_match(&mut self, mc: Match) {
         // Already at limit: don't bother if new match's score is smaller than current minimum
-        if self.matches.len() == self.max as usize && mc.score <= self.matches.last().unwrap().score {
+        if self.matches.len() == self.limit as usize && mc.score <= self.matches.last().unwrap().score {
             return;
         }
         // Remove if we already have this character with a lower score
@@ -54,7 +54,7 @@ impl<'a> MatchCollector<'a> {
             None => self.matches.push(mc)
         }
         // Beyond limit? Drop last item.
-        if self.matches.len() > self.max as usize {
+        if self.matches.len() > self.limit as usize {
             self.matches.pop();
         }
     }
@@ -66,6 +66,7 @@ mod tests {
     use super::*;
     use super::super::Match;
 
+    #[ignore]
     #[test]
     #[should_panic]
     fn test_new_fail1() {
@@ -73,6 +74,7 @@ mod tests {
         let mut _collector = MatchCollector::new(&mut matches, 0);
     }
 
+    #[ignore]
     #[test]
     #[should_panic]
     fn test_new_fail2() {

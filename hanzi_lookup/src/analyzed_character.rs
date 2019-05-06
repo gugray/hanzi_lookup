@@ -23,11 +23,24 @@ impl<'a> AnalyzedCharacter<'a> {
     pub fn from_strokes(strokes: &Vec<Stroke>) -> AnalyzedCharacter {
         let bounding_rect = get_bounding_rect(strokes);
         let analyzed_strokes: Vec<AnalyzedStroke> = build_analyzed_strokes(strokes, &bounding_rect);
-        // TO-DO: sub stroke count
+        let mut sub_stroke_count: usize = 0;
+        for i in 0..analyzed_strokes.len() {
+            sub_stroke_count += analyzed_strokes[i].sub_strokes.len();
+        }
         AnalyzedCharacter {
             analyzed_strokes: analyzed_strokes,
-            sub_stroke_count: 0,
+            sub_stroke_count: sub_stroke_count,
         }
+    }
+
+    pub fn get_analyzed_strokes(&self) -> Vec<SubStroke> {
+        let mut res: Vec<SubStroke> = Vec::with_capacity(self.sub_stroke_count);
+        for i in 0..self.analyzed_strokes.len() {
+            for j in 0..self.analyzed_strokes[i].sub_strokes.len() {
+                res.push(self.analyzed_strokes[i].sub_strokes[j]);
+            }
+        }
+        res
     }
 }
 
