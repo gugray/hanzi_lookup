@@ -66,7 +66,7 @@ mod tests {
     use super::*;
     use super::super::Match;
 
-    #[ignore]
+    //#[ignore]
     #[test]
     #[should_panic]
     fn test_new_fail1() {
@@ -74,7 +74,7 @@ mod tests {
         let mut _collector = MatchCollector::new(&mut matches, 0);
     }
 
-    #[ignore]
+    //#[ignore]
     #[test]
     #[should_panic]
     fn test_new_fail2() {
