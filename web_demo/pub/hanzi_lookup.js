@@ -47,12 +47,13 @@
     }
     /**
     * @param {any} input
+    * @param {number} limit
     * @returns {string}
     */
-    __exports.barf = function(input) {
+    __exports.lookup = function(input, limit) {
         const retptr = globalArgumentPtr();
         try {
-            wasm.barf(retptr, addBorrowedObject(input));
+            wasm.lookup(retptr, addBorrowedObject(input), limit);
             const mem = getUint32Memory();
             const rustptr = mem[retptr / 4];
             const rustlen = mem[retptr / 4 + 1];
