@@ -55,8 +55,6 @@ pub fn lookup(input: &JsValue, limit: usize) -> String {
     }
     let lookup_res = match_typed(&strokes, limit);
     serde_json::to_string(&lookup_res).unwrap()
-    // let mut res = String::new();
-    // res
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
