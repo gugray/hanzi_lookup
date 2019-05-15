@@ -4,62 +4,44 @@
 [![Build Status](https://travis-ci.com/gugray/hanzi_lookup.svg?branch=master)](https://travis-ci.com/gugray/hanzi_lookup)
 [![](https://img.shields.io/badge/license-LGPL-blue.svg)](https://opensource.org/licenses/LGPL-3.0)
 
-Free, open-source, browser-based Chinese handwriting recognition in Rust / Web Assembly
+Free, open-source, browser-based Chinese handwriting recognition in Rust / WebAssembly
 
 The library is a Rust port of [HanziLookupJS](https://github.com/gugray/HanziLookupJS), which is itself based on Jordan Kiang's [HanziLookup](http://kiang.org/jordan/software/hanzilookup). It contains data derived from Shaunak Kishore's [Make Me a Hanzi](https://github.com/skishore/makemeahanzi), and an improved character recognition algorithm.
 
 Online demo: <https://gugray.github.io/hanzi_lookup>
 
-![hanzi_lookup demo](HanziLookupJS.gif)
+![hanzi_lookup demo](hanzi_lookup.gif)
 
 ## Getting started
-You can use the library immediately if you clone the repository, publish it through an embedded server such as Mongoose, and open `/demo/index.html` in a browser. To use the library in your own application:
+If you are only interested in using the library in your own project, all you need is `hanzi_lookup_bg.wasm` and `hanzi_lookup.js`. These two files are the Rust library's output, and they are included in the `web_demo` folder.
 
-- Include `hanzilookup.min.js` in your page, or bundle it with your application.
+- You can use `web_demo` directly if you publish it with a lightweight HTTP server, or even if you just open `index.html` directly from the file system.
 
-- Publish at least one of the data files on your page. These files are not bundled in `hanzilookup.min.js` to avoid blocking page load. The library provides an asynchronous initialization function, which you must call before attempting to recognize characters. The callback function's first argument is `true` if the data file loaded successfully, and `false` otherwise. From the demo page:
+- The demo project loads the WebAssembly module within a tiny Web Worker, contained in `worker.js`. This adds a little extra complexity to the demo because of the event-based communication between the Javascript in `index.html` and the Web Worker. But it's this setup that creates a really smooth user experience by offlading the costly character lookup from the browser's UI thread.
 
-        $(document).ready(function () {
-          // Only fetch data (large, takes long) when the page has loaded
-          HanziLookup.init("mmah", "../dist/mmah.json", fileLoaded);
-          HanziLookup.init("orig", "../dist/orig.json", fileLoaded);
-        });
+- The demo project includes `drawingBoard.js`, which is a simple component for drawing characters on the screen. It is not needed for `hanzi_lookup` itself to work, and if you do choose to use it, you also need to include jQuery in your page. The compiled library itself has no external dependencies.
 
-- If you build your own UI for inputting strokes, then all you need is the code from the demo page's `lookup()` function:
+- The WebAssembly module exposes one function, called lookup, accessible by calling `wasm_bindgen.lookup(strokes, limit)`, as seen in `worker.js`. The first parameter is an array of strokes. Every stroke, in turn, consists of an array of points. Every point is a two-dimensional array representing its X and Y coordinates. The second parameter is the maximum number of matching characters returned; 8 is a reasonable number here.
 
-        // Decompose character from drawing board
-        var analyzedChar = new HanziLookup.AnalyzedCharacter(_drawingBoard.cloneStrokes());
-        // Look up with MMAH data
-        var matcherMMAH = new HanziLookup.Matcher("mmah");
-        matcherMMAH.match(analyzedChar, 8, function(matches) {
-          // The matches array contains results, best first
-          showResults($(".mmahLookupChars"), matches);
-        });
+- The lookup function returns a JSON string, which you need to convert by `JSON.parse`. The result is an array of match objects, each of which has a `hanzi` member containing the character itself, and a `score` member. The array is ordered by score.
 
-- The constructor of `AnalyzedCharacter` takes an array of strokes. Every stroke, in turn, consists of an array of points. Every point is a two-dimensional array representing its X and Y coordinates.
+- The compiled library contains all the stroke information asm embedded binary data. For details about the origin of the strokes data file and its licensing, see the related sections below.
   
-- To instantiate `Matcher` you need to pass it the name you chose when calling `init`. The matcher is a fairly lightweight object, but you only need one instance throughout your page's lifetime. To look up a new character, just pass the `AnalyzedCharacter` object to its `match` function. The second argument specifies how many candidates you want to receive. The callback function returns an array of matches (best first). In each match you're interested in the `character` member.
+## The data file
 
-- Character lookup is currently synchronous, but a later version of the library will add support for Web Workers and offload the computationally intensive work to a non-blocking thread. Results are returned via a callback function in anticipation of this change.
-
-- If you choose to use `DrawingBoard` for character input, you need to incude jQuery in your page. The rest of the library has no external dependencies.
-  
-## The two data files
+The library no longer includes the original strokes data from Jordan Kiang's HanziLookup. You can still find it in my related project, [HanziLookupJS](https://github.com/gugray/HanziLookupJS).
  
-The file `orig.json` contains the original data from Jordan Kiang's HanziLookup. Character entries contain the character's stroke count, substroke count, and a pointer into the substroke data. Each substroke is represented by a direction and a normalized length. 10,657 characters are encoded this way, but there are multiple entries for some to account for alternative ways of writing them, resulting in a total of 15,652 entries.
- 
-The file `mmah.json` is derived from Make Me a Hanzi's `graphics.txt` and encodes 9,507 characters. This file is richer because its substroke data also contains the normalized location (center point) of every substroke. The matching algorithm recognizes at runtime that this information is non-zero and calculates the score accordingly: a substroke that is in the wrong place counts for less.
+The data in in this library is based on `mmah.json`, which is derived from Make Me a Hanzi's `graphics.txt` and encodes 9,507 characters. This file is richer than the Jordan Kiang's original because its substroke data also contains the normalized location (center point) of every substroke. The matching algorithm calculates the score accordingly: a substroke that is in the wrong place counts for less. Each substroke is represented by 3 bytes: (1) Direction in radians, with 0\-2\*PI normalized to 0\-255; (2) Length normalized to 0\-255, where 255 is the bounding square's full width; (3) Centerpoint X and Y, both normalized to 0\-15, with X in the 4 higher bits.
 
-The conversion tool is a .NET Core application, included in the /mmah-convert subfolder. To repeat the conversion, you need to place `graphics.txt` from the MMAH repository in the /work subfolder.
+The Rust code loads strokes data from an embedded binary file. You can find the tiny tool I used to convert HanziLookupJS's JSON file into the binary format in the `mmah_json_convert` folder.
 
-Both data sets store substroke descriptors in an `ArrayBuffer`, Base64-encoded in the JSON file. Each substroke is represented by 3 bytes: (1) Direction in radians, with 0\-2\*PI normalized to 0\-255; (2) Length normalized to 0\-255, where 255 is the bounding square's full width; (3) Centerpoint X and Y, both normalized to 0\-15, with X in the 4 higher bits.
 
 ## License
 
-This Javascript library is derived from Jordan Kiang's original [HanziLookup](http://kiang.org/jordan/software/hanzilookup). In compliance with the original, it is licensed under [GNU LGPL](http://www.gnu.org/copyleft/gpl.html). This license covers both the code and the original data in `orig.json`.
+This Rust library is derived from Jordan Kiang's original [HanziLookup](http://kiang.org/jordan/software/hanzilookup). In compliance with the original, it is licensed under [GNU LGPL](http://www.gnu.org/copyleft/gpl.html).
 
-The data in `mmah.json` is ultimately derived from the following fonts, via Make Me a Hanzi's `graphics.txt`:
+The strokes data is ultimately derived from the following fonts, via Make Me a Hanzi's `graphics.txt` and HanziLookupJS's `mmah.json`:
 - Arphic PL KaitiM GB - https://apps.ubuntu.com/cat/applications/precise/fonts-arphic-gkai00mp/
 - Arphic PL UKai - https://apps.ubuntu.com/cat/applications/fonts-arphic-ukai/
 
-You can redistribute and/or modify `mmah.json` under the terms of the Arphic Public License as published by Arphic Technology Co., Ltd. The license is reproduced in LICENSE-APL; you can also find it online at <http://ftp.gnu.org/non-gnu/chinese-fonts-truetype/LICENSE>.
+You can redistribute and/or modify `mmah.json` or the derived binary file under the terms of the Arphic Public License as published by Arphic Technology Co., Ltd. The license is reproduced in LICENSE-APL; you can also find it online at <http://ftp.gnu.org/non-gnu/chinese-fonts-truetype/LICENSE>.
