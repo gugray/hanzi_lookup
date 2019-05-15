@@ -59,11 +59,11 @@ impl Matcher {
             pos_score_table: Vec::with_capacity(450),
         };
         init_score_tables(&mut res.direction_score_table, &mut res.length_score_table, &mut res.pos_score_table);
+        init_score_matrix(&mut res.score_matrix);
         res
     }
 
     pub fn lookup(&mut self, strokes: &Vec<Stroke>, collector: &mut MatchCollector) {
-        init_score_matrix(&mut self.score_matrix);
         let input_char = AnalyzedCharacter::from_strokes(strokes);
 
         // Edge case: empty input should return no matches; but permissive lookup does find a few...

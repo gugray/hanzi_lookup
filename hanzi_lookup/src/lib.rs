@@ -84,11 +84,5 @@ pub fn match_typed(strokes: &Vec<Stroke>, limit: usize) -> Vec<Match> {
     MATCHER.with(|matcher| {
         matcher.borrow_mut().lookup(strokes, &mut collector);
     });
-    // DBG
-    // let mc = Match {
-    //     hanzi: '雞',
-    //     score: 0.99,
-    // };
-    // collector.file_match(mc);
     res
 }
