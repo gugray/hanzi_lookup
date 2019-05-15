@@ -17,9 +17,9 @@ If you are only interested in using the library in your own project, all you nee
 
 - You can use `web_demo` directly if you publish it with a lightweight HTTP server, or even if you just open `index.html` directly from the file system.
 
-- The demo project loads the WebAssembly module within a tiny Web Worker, contained in `worker.js`. This adds a little extra complexity to the demo because of the event-based communication between the Javascript in `index.html` and the Web Worker. But it's this setup that creates a really smooth user experience by offlading the costly character lookup from the browser's UI thread.
+- The demo project loads the WebAssembly module within a tiny Web Worker, contained in `worker.js`. This adds a little extra complexity to the demo because of the event-based communication between the Javascript in `index.html` and the Web Worker. But it's this setup that creates a really smooth user experience by offloading the costly character lookup from the browser's UI thread.
 
-- The demo project includes `drawingBoard.js`, which is a simple component for drawing characters on the screen. It is not needed for `hanzi_lookup` itself to work, and if you do choose to use it, you also need to include jQuery in your page. The compiled library itself has no external dependencies.
+- The demo project includes `drawingBoard.js`, which is a simple component for drawing characters on the screen. It is not needed for `hanzi_lookup` itself to work, and if you do choose to use it, you also need to include jQuery in your page. The compiled library has no external dependencies.
 
 - The WebAssembly module exposes one function, called lookup, accessible by calling `wasm_bindgen.lookup(strokes, limit)`, as seen in `worker.js`. The first parameter is an array of strokes. Every stroke, in turn, consists of an array of points. Every point is a two-dimensional array representing its X and Y coordinates. The second parameter is the maximum number of matching characters returned; 8 is a reasonable number here.
 
