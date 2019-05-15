@@ -1,2 +1,2 @@
 [workspace]
-members = ["cli_demo", "hanzi_lookup"]
+members = ["mmah_json_convert", "cli_demo", "hanzi_lookup"]
