@@ -27,17 +27,37 @@ fn load_strokes() -> Vec<CharData> {
     res
 }
 
-trait MatcherParams {
-    const MAX_CHARACTER_STROKE_COUNT: usize = 48;
-    const MAX_CHARACTER_SUB_STROKE_COUNT: usize = 64;
-    const DEFAULT_LOOSENESS: f32 = 0.15;
-    const AVG_SUBSTROKE_LENGTH: f32 = 0.33; // an average length (out of 1)
-    const SKIP_PENALTY_MULTIPLIER: f32 = 1.75; // penalty mulitplier for skipping a stroke
-    const CORRECT_NUM_STROKES_BONUS: f32 = 0.1; // max multiplier bonus if characters has the correct number of strokes
-    const CORRECT_NUM_STROKES_CAP: usize = 10; // characters with more strokes than this will not be multiplied
+// The algorithm's magic numbers. Allow shouting snake case because we look at these as effective constants.
+#[allow(non_snake_case)]
+#[derive(Clone, Copy)]
+pub struct MatcherParams {
+    pub MAX_CHARACTER_STROKE_COUNT: usize,
+    pub MAX_CHARACTER_SUB_STROKE_COUNT: usize,
+    pub DEFAULT_LOOSENESS: f32,
+    pub AVG_SUBSTROKE_LENGTH: f32,      // an average length (out of 1)
+    pub SKIP_PENALTY_MULTIPLIER: f32,   // penalty mulitplier for skipping a stroke
+    pub CORRECT_NUM_STROKES_BONUS: f32, // max multiplier bonus if characters has the correct number of strokes
+    pub CORRECT_NUM_STROKES_CAP: usize, // characters with more strokes than this will not be multiplied
+}
+#[warn(non_snake_case)]
+
+impl Default for MatcherParams {
+    fn default() -> MatcherParams {
+        MatcherParams {
+            MAX_CHARACTER_STROKE_COUNT: 48,
+            MAX_CHARACTER_SUB_STROKE_COUNT: 64,
+            DEFAULT_LOOSENESS: 0.15,
+            AVG_SUBSTROKE_LENGTH: 0.33,
+            SKIP_PENALTY_MULTIPLIER: 1.75,
+            CORRECT_NUM_STROKES_BONUS: 0.1,
+            CORRECT_NUM_STROKES_CAP: 10,
+        }
+    }
 }
 
 pub struct Matcher {
+    // Magic numbers; can be overridden
+    params: MatcherParams,
     // N*N dimensional matrix where N = MAX_CHARACTER_SUB_STROKE_COUNT + 1
     score_matrix: Vec<Vec<f32>>,
     // Values pre-computed as solutions of a 2D quadratic curve
@@ -48,18 +68,22 @@ pub struct Matcher {
     pos_score_table: Vec<f32>,
 }
 
-impl MatcherParams for Matcher {}
-
 impl Matcher {
     pub fn new() -> Matcher {
+        let params = MatcherParams::default();
+        Matcher::with_params(&params)
+    }
+
+    pub fn with_params(params: &MatcherParams) -> Matcher {
         let mut res = Matcher {
-            score_matrix: Vec::with_capacity(Matcher::MAX_CHARACTER_SUB_STROKE_COUNT + 1),
+            score_matrix: Vec::with_capacity(params.MAX_CHARACTER_SUB_STROKE_COUNT + 1),
+            params: *params,
             direction_score_table: Vec::with_capacity(256),
             length_score_table: Vec::with_capacity(129),
             pos_score_table: Vec::with_capacity(450),
         };
         init_score_tables(&mut res.direction_score_table, &mut res.length_score_table, &mut res.pos_score_table);
-        init_score_matrix(&mut res.score_matrix);
+        res.init_score_matrix();
         res
     }
 
@@ -82,16 +106,16 @@ impl Matcher {
             // Get the range of strokes to compare against based on the loosness.
             // Characters with fewer strokes than stroke_count - stroke_range
             // or more than stroke_count + stroke_range won't even be considered.
-            let stroke_range = get_strokes_range(stroke_count, Matcher::DEFAULT_LOOSENESS);
+            let stroke_range = self.get_strokes_range(stroke_count, self.params.DEFAULT_LOOSENESS);
             let minimum_strokes = usize::max(stroke_count - stroke_range, 1);
-            let maximum_strokes = usize::min(stroke_count + stroke_range, Matcher::MAX_CHARACTER_STROKE_COUNT);
+            let maximum_strokes = usize::min(stroke_count + stroke_range, self.params.MAX_CHARACTER_STROKE_COUNT);
             // Get the range of substrokes to compare against based on looseness.
             // When trying to match sub stroke patterns, won't compare sub strokes
             // that are farther about in sequence than this range.  This is to make
             // computing matches less expensive for low loosenesses.
-            let sub_strokes_range = get_sub_strokes_range(sub_stroke_count, Matcher::DEFAULT_LOOSENESS);
+            let sub_strokes_range = self.get_sub_strokes_range(sub_stroke_count, self.params.DEFAULT_LOOSENESS);
             let min_sub_strokes = usize::max(sub_stroke_count - sub_strokes_range, 1);
-            let max_sub_strokes = usize::min(sub_stroke_count + sub_strokes_range, Matcher::MAX_CHARACTER_SUB_STROKE_COUNT);
+            let max_sub_strokes = usize::min(sub_stroke_count + sub_strokes_range, self.params.MAX_CHARACTER_SUB_STROKE_COUNT);
             // Iterate over all characters in repo
             for cix in 0..char_data.len() {
                 let repo_char = &char_data[cix];
@@ -120,11 +144,11 @@ impl Matcher {
         let mut score = self.compute_match_score(input_sub_strokes, sub_strokes_range, repo_char);
         // If the input character and the character in the repository have the same number of strokes, assign a small bonus.
         // Might be able to remove this, doesn't really add much, only semi-useful for characters with only a couple strokes.
-        if input_stroke_count == repo_char.stroke_count as usize && input_stroke_count < Matcher::CORRECT_NUM_STROKES_CAP {
+        if input_stroke_count == repo_char.stroke_count as usize && input_stroke_count < self.params.CORRECT_NUM_STROKES_CAP {
             // The bonus declines linearly as the number of strokes increases, writing 2 instead of 3 strokes is worse than 9 for 10.
-            let bonus = Matcher::CORRECT_NUM_STROKES_BONUS * 
-                (i32::max(Matcher::CORRECT_NUM_STROKES_CAP as i32 - input_stroke_count as i32, 0) as f32) / 
-                (Matcher::CORRECT_NUM_STROKES_CAP as f32);
+            let bonus = self.params.CORRECT_NUM_STROKES_BONUS * 
+                (i32::max(self.params.CORRECT_NUM_STROKES_CAP as i32 - input_stroke_count as i32, 0) as f32) / 
+                (self.params.CORRECT_NUM_STROKES_CAP as f32);
             score += bonus * score;
         }
         Match {
@@ -164,9 +188,9 @@ impl Matcher {
                     // We incur penalties for skipping substrokes.
                     // Get the scores that would be incurred either for skipping the substroke from the descriptor, or from the repository.
                     let skip1_score = self.score_matrix[x][y + 1] -
-                        (input_length as f32 / 256.0 * Matcher::SKIP_PENALTY_MULTIPLIER);
+                        (input_length as f32 / 256.0 * self.params.SKIP_PENALTY_MULTIPLIER);
                     let skip2_score = self.score_matrix[x + 1][y] - 
-                        (cmp_length as f32 / 256.0 * Matcher::SKIP_PENALTY_MULTIPLIER);
+                        (cmp_length as f32 / 256.0 * self.params.SKIP_PENALTY_MULTIPLIER);
                     // The skip score is the maximum of the scores that would result from skipping one of the substrokes.
                     let skip_score = f32::max(skip1_score, skip2_score);
                     // The match_score is the score of actually comparing the two substrokes.
@@ -255,30 +279,65 @@ impl Matcher {
         // Lookup table for actual score function
         self.length_score_table[ratio]
     }
-}
 
-fn init_score_matrix(sm: &mut Vec<Vec<f32>>) {
-    // Allocate if this is the first time we're initializing
-    if sm.len() == 0 {
-        for i in 0..Matcher::MAX_CHARACTER_SUB_STROKE_COUNT + 1 {
-            sm.push(Vec::with_capacity(Matcher::MAX_CHARACTER_SUB_STROKE_COUNT + 1));
-            for _ in 0..Matcher::MAX_CHARACTER_SUB_STROKE_COUNT + 1 {
-                sm[i].push(0f32);
+    fn init_score_matrix(&mut self) {
+        // Allocate if this is the first time we're initializing
+        if self.score_matrix.len() == 0 {
+            for i in 0..self.params.MAX_CHARACTER_SUB_STROKE_COUNT + 1 {
+                self.score_matrix.push(Vec::with_capacity(self.params.MAX_CHARACTER_SUB_STROKE_COUNT + 1));
+                for _ in 0..self.params.MAX_CHARACTER_SUB_STROKE_COUNT + 1 {
+                    self.score_matrix[i].push(0f32);
+                }
             }
         }
-    }
-    // For starters, everythig is zero
-    for i in 0..sm.len() {
-        for j in 0..sm[i].len() {
-            sm[i][j] = 0f32;
+        // For starters, everythig is zero
+        for i in 0..self.score_matrix.len() {
+            for j in 0..self.score_matrix[i].len() {
+                self.score_matrix[i][j] = 0f32;
+            }
+        }
+        // Seed the first row and column with base values.
+        // Starting from a cell that isn't at 0,0 to skip strokes incurs a penalty.
+        for i in 0..self.score_matrix.len() {
+            let penalty = -self.params.AVG_SUBSTROKE_LENGTH * self.params.SKIP_PENALTY_MULTIPLIER * (i as f32);
+            self.score_matrix[i][0] = penalty;
+            self.score_matrix[0][i] = penalty;
         }
     }
-    // Seed the first row and column with base values.
-    // Starting from a cell that isn't at 0,0 to skip strokes incurs a penalty.
-    for i in 0..sm.len() {
-        let penalty = -Matcher::AVG_SUBSTROKE_LENGTH * Matcher::SKIP_PENALTY_MULTIPLIER * (i as f32);
-        sm[i][0] = penalty;
-        sm[0][i] = penalty;
+
+    fn get_strokes_range(&self, stroke_count: usize, looseness: f32) -> usize {
+        if looseness == 0f32 { return 0; }
+        if looseness == 1f32 { return self.params.MAX_CHARACTER_STROKE_COUNT; }
+        // We use a CubicCurve that grows slowly at first and then rapidly near the end to the maximum.
+        // This is so a looseness at or near 1.0 will return a range that will consider all characters.
+        let ctrl1_x = 0.35;
+        let ctrl1_y = (stroke_count as f32) * 0.4;
+        let ctrl2_x = 0.6;
+        let ctrl2_y = stroke_count as f32;
+        let curve = CubicCurve2D::new(0.0, 0.0, ctrl1_x, ctrl1_y, ctrl2_x, ctrl2_y, 1.0, self.params.MAX_CHARACTER_STROKE_COUNT as f32);
+        let t = curve.get_first_solution_for_x(looseness);
+        // We get the t value on the parametrized curve where the x value matches the looseness.
+        // Then we compute the y value for that t. This gives the range.
+        let res = curve.get_y_on_curve(t).round();
+        return res as usize;
+    }
+
+    fn get_sub_strokes_range(&self, sub_stroke_count: usize, looseness: f32) -> usize {
+        // Return the maximum if looseness = 1.0.
+        // Otherwise we'd have to ensure that the floating point value led to exactly the right int count.
+        if looseness == 1.0 { return self.params.MAX_CHARACTER_SUB_STROKE_COUNT; }
+        // We use a CubicCurve that grows slowly at first and then rapidly near the end to the maximum.
+        let y0 = (sub_stroke_count as f32) * 0.25;
+        let ctrl1_x = 0.4;
+        let ctrl1_y = 1.5 * y0;
+        let ctrl2_x = 0.75;
+        let ctrl2_y = 1.5 * ctrl1_y;
+        let curve = CubicCurve2D::new(0.0, y0, ctrl1_x, ctrl1_y, ctrl2_x, ctrl2_y, 1.0, self.params.MAX_CHARACTER_SUB_STROKE_COUNT as f32);
+        let t = curve.get_first_solution_for_x(looseness);
+        // We get the t value on the parametrized curve where the x value matches the looseness.
+        // Then we compute the y value for that t. This gives the range.
+        let res = curve.get_y_on_curve(t).round();
+        return res as usize;
     }
 }
 
@@ -318,41 +377,6 @@ fn init_sc_from_curve(score_table: &mut Vec<f32>, curve: &CubicCurve2D, samples:
         score_table.push(curve.get_y_on_curve(t));
         x += x_inc;
     }
-}
-
-fn get_strokes_range(stroke_count: usize, looseness: f32) -> usize {
-    if looseness == 0f32 { return 0; }
-    if looseness == 1f32 { return Matcher::MAX_CHARACTER_STROKE_COUNT; }
-    // We use a CubicCurve that grows slowly at first and then rapidly near the end to the maximum.
-    // This is so a looseness at or near 1.0 will return a range that will consider all characters.
-    let ctrl1_x = 0.35;
-    let ctrl1_y = (stroke_count as f32) * 0.4;
-    let ctrl2_x = 0.6;
-    let ctrl2_y = stroke_count as f32;
-    let curve = CubicCurve2D::new(0.0, 0.0, ctrl1_x, ctrl1_y, ctrl2_x, ctrl2_y, 1.0, Matcher::MAX_CHARACTER_STROKE_COUNT as f32);
-    let t = curve.get_first_solution_for_x(looseness);
-    // We get the t value on the parametrized curve where the x value matches the looseness.
-    // Then we compute the y value for that t. This gives the range.
-    let res = curve.get_y_on_curve(t).round();
-    return res as usize;
-}
-
-fn get_sub_strokes_range(sub_stroke_count: usize, looseness: f32) -> usize {
-    // Return the maximum if looseness = 1.0.
-    // Otherwise we'd have to ensure that the floating point value led to exactly the right int count.
-    if looseness == 1.0 { return Matcher::MAX_CHARACTER_SUB_STROKE_COUNT; }
-    // We use a CubicCurve that grows slowly at first and then rapidly near the end to the maximum.
-    let y0 = (sub_stroke_count as f32) * 0.25;
-    let ctrl1_x = 0.4;
-    let ctrl1_y = 1.5 * y0;
-    let ctrl2_x = 0.75;
-    let ctrl2_y = 1.5 * ctrl1_y;
-    let curve = CubicCurve2D::new(0.0, y0, ctrl1_x, ctrl1_y, ctrl2_x, ctrl2_y, 1.0, Matcher::MAX_CHARACTER_SUB_STROKE_COUNT as f32);
-    let t = curve.get_first_solution_for_x(looseness);
-    // We get the t value on the parametrized curve where the x value matches the looseness.
-    // Then we compute the y value for that t. This gives the range.
-    let res = curve.get_y_on_curve(t).round();
-    return res as usize;
 }
 
 
