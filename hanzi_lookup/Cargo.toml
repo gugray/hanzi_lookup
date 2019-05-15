@@ -1,7 +1,7 @@
 [package]
 name = "hanzi_lookup"
-version = "0.0.1"
-authors = ["gugray <gabor@berlin.de>"]
+version = "1.0.0"
+authors = ["gugray <zydeodict@gmail.com>"]
 
 [lib]
 crate-type = ["lib", "cdylib"]
