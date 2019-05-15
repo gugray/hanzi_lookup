@@ -26,11 +26,17 @@
     .cmd.cmdUndo { float: right; }
     .cmd:hover { background-color: #f1d7a6; }
     .charPicker { 
+      font-family: SimHei, "Microsoft Yahei", STXihei, STHeitiSC-Medium, DengXian, sans-serif;
       border: 1px solid #a0a0a0; padding: 3px; height: 70px; width: 400px; font-size: 48px; background-color: #fafafa; overflow: hidden; 
       color: #606060;
     }
     .charPicker span { cursor: default; }
     .hanziLookupChars { margin-bottom: 20px; }
+    @media (max-width: 800px) {
+      .content, .header { width: 100%; box-sizing: border-box; }
+      .colLeft, .colRight { width: 100%; float: left; clear: both; padding-left: 0; }
+      .commands { float: left; clear: both; }
+    }
   </style>
 </head>
 <body>
